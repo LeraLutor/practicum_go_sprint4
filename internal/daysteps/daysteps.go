@@ -1,7 +1,12 @@
 package daysteps
 
 import (
+	"fmt"
+	"strconv"
+	"strings"
 	"time"
+
+	"github.com/Yandex-Practicum/tracker/internal/spentcalories"
 )
 
 const (
@@ -11,10 +16,86 @@ const (
 	mInKm = 1000
 )
 
+// парсинг тренировки
 func parsePackage(data string) (int, time.Duration, error) {
-	// TODO: реализовать функцию
+	// строка делится на слайс
+	parts := strings.Split(data, ",")
+
+	// проверка на длину
+	if len(parts) != 2 {
+		return 0, 0, fmt.Errorf("неверный формат данных. Ожидается 2 значения: количество шагов и длительность")
+	}
+
+	// колво шагов в int
+	steps, err := strconv.Atoi(parts[0])
+	// проверка на ошибку преобразования колво шагов
+	if err != nil {
+		return 0, 0, fmt.Errorf("не удалось прочитать количество шагов: %w", err)
+	}
+	// проверка на длительность
+	if steps <= 0 {
+		return 0, 0, fmt.Errorf("количество шагов должно быть больше нуля")
+	}
+	// проверка на ошибку данных
+	if steps <= 0 {
+		return 0, 0, fmt.Errorf("количество шагов должно быть больше нуля")
+	}
+
+	// преобразование длительности
+	duration, err := time.ParseDuration(parts[1])
+	// проверка на ошибку преобразования длительности
+	if err != nil {
+		return 0, 0, fmt.Errorf("не удалось прочитать длительность прогулки: %w", err)
+	}
+
+	// проверка на длительность
+	if duration <= 0 {
+		return 0, 0, fmt.Errorf("длительность тренировки должна быть больше нуля")
+	}
+
+	return steps, duration, nil
 }
 
+// инфо об активных днях
 func DayActionInfo(data string, weight, height float64) string {
-	// TODO: реализовать функцию
+	// // считывание данных о тренировкt
+	steps, duration, err := parsePackage(data)
+	// проверка на ошибку считывания
+	if err != nil {
+		fmt.Println(err)
+		return ""
+	}
+
+	// проверка на отсутсвие шагов
+	if steps <= 0 {
+		return ""
+	}
+
+	// подсчет дистанции
+	distanceInMeters := float64(steps) * stepLength
+	// перевод в км
+	distanceInKm := distanceInMeters / mInKm
+
+	// подсчет калорий
+	calories, err := spentcalories.WalkingSpentCalories(
+		steps,
+		weight,
+		height,
+		duration,
+	)
+	// проверка на ошибки
+	if err != nil {
+		fmt.Println(err)
+		return ""
+	}
+
+	// вывод
+	return fmt.Sprintf(
+		"Количество шагов: %d.\n"+
+			"Дистанция составила %.2f км.\n"+
+			"Вы сожгли %.2f ккал.\n",
+		steps,
+		distanceInKm,
+		calories,
+	)
 }
